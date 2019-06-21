@@ -1,0 +1,3 @@
+// Model version
+project.ext.PUBLIC_VERSION='latest.integration'
+project.ext.SDK_VERSION='latest.integration'

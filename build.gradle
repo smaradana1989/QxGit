@@ -1,0 +1,107 @@
+
+
+/*---------------------------*/
+/* Buildscripts              */
+/*---------------------------*/
+
+
+ext.noJavadoc = 'true'
+ext.cameleonJavaVersion = JavaVersion.VERSION_1_8
+
+buildscript {
+    repositories {
+        maven {
+            // From properties
+            url "$repositoryUrl"
+        }
+    }
+	dependencies {
+		classpath group: 'com.pros', name: 'quotex-modeling-setup-update-sdk-version-plugin-PROD', version: 'latest.integration'
+		classpath group: 'com.pros.cloud.security', name: 'cloud-auth-client-core', version: '0.10.0'
+		classpath group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.6'
+		classpath group: 'org.json', name: 'json', version: '20180813'
+		classpath group: 'commons-io', name: 'commons-io', version: '2.6'
+	}
+}
+ 
+
+/*---------------------------*/
+/* Plugins                   */
+/*---------------------------*/
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply from: "libraryVersion.gradle"
+
+project.repositories{
+	mavenCentral()
+	maven{ url "${repositoryUrl}" }
+}
+
+/*---------------------------*/
+/* External Properties                   */
+/*---------------------------*/
+Properties setupProperties = new Properties()
+File setupPropertiesFile = new File('setup.properties')
+setupPropertiesFile.withInputStream {
+    setupProperties.load(it)
+}
+
+String publicApiSuffix = setupProperties.quotexPublicApiSuffixName
+String sdkSuffix = setupProperties.sdkSuffixName
+
+String quotexPublicApiName = 'quotex-model-public-api'
+if(publicApiSuffix != null){
+    quotexPublicApiName = quotexPublicApiName + publicApiSuffix
+}
+
+String quotexSdkName = 'quotex-model-sdk'
+if(sdkSuffix != null){
+    quotexSdkName = quotexSdkName + sdkSuffix
+}
+
+/*---------------------------*/
+/* Dependencies              */
+/*---------------------------*/
+dependencies {
+
+    compile(
+	    dependencies.create([group: 'com.pros', name: quotexPublicApiName, version: '1.1.0.39']){ transitive = false },
+	    dependencies.create([group: 'com.pros', name: quotexSdkName, classifier: 'template-sources', version: '1.1.0.39']){ transitive = false }
+    )
+
+    runtime(
+	    dependencies.create([group: 'org.jboss.resteasy', name: 'resteasy-jackson2-provider', version: '3.0.24.Final']){ transitive = false },
+	    dependencies.create([group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: '2.9.5']){ transitive = false },
+	    dependencies.create([group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-base', version: '2.9.5']){ transitive = false },
+	    dependencies.create([group: 'com.fasterxml.jackson.module', name: 'jackson-module-jaxb-annotations', version: '2.9.5']){ transitive = false },
+	    dependencies.create([group: 'org.jboss.resteasy', name: 'resteasy-client', version: '3.5.1.Final']){ transitive = true },
+	    dependencies.create([group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.5']){ transitive = true },
+	    dependencies.create([group: 'javax.json', name: 'javax.json-api', version: '1.1.2']){ transitive = false },
+	    dependencies.create([group: 'org.glassfish', name: 'javax.json', version: '1.1.2']){ transitive = false },
+		dependencies.create([group: 'com.nimbusds', name: 'nimbus-jose-jwt', version: '5.1']){ transitive = false },
+		dependencies.create([group: 'net.minidev', name: 'json-smart', version: '2.3']){ transitive = true },
+		dependencies.create([group: 'org.codehaus.jettison', name: 'jettison', version: '1.3.3']){ transitive = false },
+		dependencies.create([group: 'org.jboss.resteasy', name: 'resteasy-multipart-provider', version: '3.0.11.Final']){ transitive = false },
+		dependencies.create([group: 'javax.mail', name: 'javax.mail-api', version: '1.6.0']){ transitive = false },
+        dependencies.create([group: 'com.google.guava', name: 'guava', version: '27.0.1-jre']){ transitive = false }
+    )
+
+}
+
+[compileJava, compileTestJava]*.with {
+    options*.encoding = 'UTF-8'
+    options*.fork = true
+    options*.forkOptions*.executable = cameleonJavac[cameleonJavaVersion]
+}
+
+task bootstrap(type:JavaExec) {
+   classpath = sourceSets.main.runtimeClasspath
+   main = 'com.pros.quotex.application.bootstrap.model.runtime.Bootstrap'
+}
+
+task updateModelMatrix(type:JavaExec) {
+	classpath = sourceSets.main.runtimeClasspath
+	main = 'com.pros.quotex.application.bootstrap.model.runtime.UpdateModelMatrix'
+}
+
+apply plugin: 'pros-quotex-modeling-setup-update-sdk-version-plugin'
